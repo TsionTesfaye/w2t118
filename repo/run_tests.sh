@@ -21,9 +21,21 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # ── Dependency Check ──
+# Rollup (used by Vite) ships platform-specific native binaries as optional
+# dependencies. If node_modules was installed on a different OS/arch (e.g.
+# macOS → Linux CI, or Alpine → glibc), the native module will be missing.
+# Detect this and reinstall when needed.
+NEED_INSTALL=0
 if [ ! -d "node_modules" ]; then
-  echo "  node_modules not found — running npm install..."
-  npm install --ignore-scripts 2>&1 | tail -5 || true
+  NEED_INSTALL=1
+elif ! node -e "require('rollup')" 2>/dev/null; then
+  echo "  Rollup native module missing for this platform — reinstalling..."
+  rm -rf node_modules
+  NEED_INSTALL=1
+fi
+if [ $NEED_INSTALL -eq 1 ]; then
+  echo "  Running npm install..."
+  npm install 2>&1 | tail -5 || true
 fi
 
 # ── Build Validation ──
