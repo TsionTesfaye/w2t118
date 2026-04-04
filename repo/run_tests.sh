@@ -38,6 +38,14 @@ if [ $NEED_INSTALL -eq 1 ]; then
   npm install 2>&1 | tail -5 || true
 fi
 
+# ── Node 18 crypto polyfill ──
+# Node 18 exposes crypto on globalThis but NOT as a bare global identifier
+# (that landed in Node 20). Create a --require polyfill so every test file
+# can use `crypto.subtle` without import.
+POLYFILL_FILE="$SCRIPT_DIR/.n18-crypto-polyfill.cjs"
+printf 'if (!global.crypto) global.crypto = require("crypto").webcrypto;\n' > "$POLYFILL_FILE"
+export NODE_OPTIONS="--require $POLYFILL_FILE ${NODE_OPTIONS:-}"
+
 # ── Build Validation ──
 echo "============================================"
 echo "  BUILD VALIDATION"
@@ -116,6 +124,13 @@ run_browser_tests() {
   echo "============================================"
   echo "  Requires: built app (npm run build already ran above)"
   echo "  Server:   Playwright auto-starts via webServer config"
+
+  # Ensure Playwright browsers are installed
+  if ! npx playwright install --dry-run > /dev/null 2>&1; then
+    echo "  Installing Playwright browsers..."
+  fi
+  npx playwright install chromium 2>&1 | tail -3 || true
+
   TOTAL=$((TOTAL + 1))
   if npx playwright test; then
     PASSED=$((PASSED + 1))
@@ -148,6 +163,9 @@ case "$MODE" in
     run_browser_tests
     ;;
 esac
+
+# ── Cleanup ──
+rm -f "$POLYFILL_FILE"
 
 # ── Summary ──
 echo ""
