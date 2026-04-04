@@ -23,22 +23,25 @@ cd "$SCRIPT_DIR"
 # ── Dependency Check ──
 if [ ! -d "node_modules" ]; then
   echo "  node_modules not found — running npm install..."
-  npm install --ignore-scripts 2>&1 | tail -1
+  npm install --ignore-scripts 2>&1 | tail -5 || true
 fi
 
 # ── Build Validation ──
 echo "============================================"
 echo "  BUILD VALIDATION"
 echo "============================================"
+# Temporarily disable set -e so we can capture the exit code
+set +e
 BUILD_OUTPUT=$(npm run build 2>&1)
 BUILD_EXIT=$?
+set -e
 if [ $BUILD_EXIT -eq 0 ]; then
   echo "  Build succeeded"
 else
   echo "  BUILD FAILED — aborting tests"
   echo ""
   echo "  Build output:"
-  echo "$BUILD_OUTPUT" | tail -20
+  echo "$BUILD_OUTPUT" | tail -30
   echo ""
   exit 1
 fi
