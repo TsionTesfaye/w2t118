@@ -26,7 +26,7 @@ import { AuditService, AuditActions } from './AuditService.js';
 // ── Passphrase encryption helpers (AES-256-GCM via Web Crypto) ──────────────
 
 const ENC_ALGO = 'AES-GCM';
-const PBKDF2_ITERATIONS = 100_000;
+const PBKDF2_ITERATIONS = 100000;
 
 function _bufToBase64(buf) {
   const bytes = new Uint8Array(buf);

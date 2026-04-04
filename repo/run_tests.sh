@@ -20,14 +20,25 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# ── Dependency Check ──
+if [ ! -d "node_modules" ]; then
+  echo "  node_modules not found — running npm install..."
+  npm install --ignore-scripts 2>&1 | tail -1
+fi
+
 # ── Build Validation ──
 echo "============================================"
 echo "  BUILD VALIDATION"
 echo "============================================"
-if npm run build > /dev/null 2>&1; then
+BUILD_OUTPUT=$(npm run build 2>&1)
+BUILD_EXIT=$?
+if [ $BUILD_EXIT -eq 0 ]; then
   echo "  Build succeeded"
 else
   echo "  BUILD FAILED — aborting tests"
+  echo ""
+  echo "  Build output:"
+  echo "$BUILD_OUTPUT" | tail -20
   echo ""
   exit 1
 fi
