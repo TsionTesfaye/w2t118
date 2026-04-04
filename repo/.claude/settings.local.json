@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x:*)",
+      "Bash(./run_tests.sh:*)",
+      "Bash(grep:*)",
+      "Bash(npm --version)",
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)",
+      "Bash(node unit_tests/domain/test_validation_rules.js)",
+      "Bash(node:*)",
+      "Bash(bash run_tests.sh)",
+      "Bash(npm run:*)",
+      "Bash(head -15 /Users/tsiontesfaye/Projects/EaglePoint/trade-loop/repo/unit_tests/services/*.js)",
+      "Bash(python3:*)",
+      "Bash(npx playwright:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "Bash(pkill -f \"vite preview\")",
+      "Bash(docker build:*)",
+      "Bash(docker compose:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(NODE_OPTIONS=\"--require /dev/stdin\" bash:*)"
+    ]
+  }
+}
