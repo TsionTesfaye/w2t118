@@ -4,7 +4,7 @@
  * Covers:
  *   - exportRedactedSnapshot: all stores present; credential fields redacted; _meta.mode = "redacted"
  *   - exportRestorableSnapshot: encrypted user bundle present; visible users redacted; _meta.mode = "restorable"
- *   - exportFullSnapshot: backward-compat alias delegates to exportRedactedSnapshot
+ *   - exportFullSnapshot: backward-compat alias (tested indirectly; call sites use exportRedactedSnapshot)
  *   - exportFiltered: credential fields redacted when users store selected
  *   - exportReports / exportReportsCSV: filter by status, targetType, dateFrom/dateTo
  *   - importSnapshot: redacted → users skipped; restorable + passphrase → users restored;
@@ -176,11 +176,11 @@ function stubAllRepos() {
 
 stubAllRepos();
 
-// ── exportRedactedSnapshot (via backward-compat alias exportFullSnapshot) ────
+// ── exportRedactedSnapshot ───────────────────────────────────────────────────
 
-suite.test('exportRedactedSnapshot (via alias): result contains all expected store keys', async () => {
+suite.test('exportRedactedSnapshot: result contains all expected store keys', async () => {
   const session = makeAdminSession();
-  const result = await ExportImportService.exportFullSnapshot(session);
+  const result = await ExportImportService.exportRedactedSnapshot(session);
 
   const expectedStores = [
     'users', 'listings', 'listingVersions', 'transactions', 'threads', 'messages',
@@ -195,9 +195,9 @@ suite.test('exportRedactedSnapshot (via alias): result contains all expected sto
   assertEqual(result._meta.version, 1);
 });
 
-suite.test('exportRedactedSnapshot (via alias): requires ADMIN_EXPORT (plain user is rejected)', async () => {
+suite.test('exportRedactedSnapshot: requires ADMIN_EXPORT (plain user is rejected)', async () => {
   await assertThrowsAsync(
-    () => ExportImportService.exportFullSnapshot(makeUserSession()),
+    () => ExportImportService.exportRedactedSnapshot(makeUserSession()),
     null,
     'Permission denied',
   );
@@ -210,7 +210,7 @@ suite.test('redacted snapshot: passwordHash is NOT present in exported users', a
   await userRepoStub.create(makeUser({ id: 'u-safe-1' }));
 
   const session = makeAdminSession();
-  const result = await ExportImportService.exportFullSnapshot(session);
+  const result = await ExportImportService.exportRedactedSnapshot(session);
 
   for (const user of result.users) {
     assert(!Object.prototype.hasOwnProperty.call(user, 'passwordHash'),
@@ -223,7 +223,7 @@ suite.test('redacted snapshot: salt is NOT present in exported users', async () 
   await userRepoStub.create(makeUser({ id: 'u-safe-2' }));
 
   const session = makeAdminSession();
-  const result = await ExportImportService.exportFullSnapshot(session);
+  const result = await ExportImportService.exportRedactedSnapshot(session);
 
   for (const user of result.users) {
     assert(!Object.prototype.hasOwnProperty.call(user, 'salt'),
@@ -236,7 +236,7 @@ suite.test('redacted snapshot: answerHash and answerSalt NOT in security questio
   await userRepoStub.create(makeUser({ id: 'u-safe-3' }));
 
   const session = makeAdminSession();
-  const result = await ExportImportService.exportFullSnapshot(session);
+  const result = await ExportImportService.exportRedactedSnapshot(session);
 
   for (const user of result.users) {
     if (Array.isArray(user.securityQuestions)) {
@@ -255,7 +255,7 @@ suite.test('redacted snapshot: non-sensitive user fields are preserved', async (
   await userRepoStub.create(makeUser({ id: 'u-safe-4', username: 'alice', displayName: 'Alice' }));
 
   const session = makeAdminSession();
-  const result = await ExportImportService.exportFullSnapshot(session);
+  const result = await ExportImportService.exportRedactedSnapshot(session);
 
   const exported = result.users.find(u => u.id === 'u-safe-4');
   assert(exported, 'User must be present in export');
@@ -270,7 +270,7 @@ suite.test('redacted snapshot: security question text is preserved after redacti
   await userRepoStub.create(makeUser({ id: 'u-safe-5' }));
 
   const session = makeAdminSession();
-  const result = await ExportImportService.exportFullSnapshot(session);
+  const result = await ExportImportService.exportRedactedSnapshot(session);
 
   const exported = result.users.find(u => u.id === 'u-safe-5');
   assert(exported, 'User must be present');
@@ -281,7 +281,7 @@ suite.test('redacted snapshot: security question text is preserved after redacti
 
 suite.test('redacted snapshot: _meta.redacted is true', async () => {
   const session = makeAdminSession();
-  const result = await ExportImportService.exportFullSnapshot(session);
+  const result = await ExportImportService.exportRedactedSnapshot(session);
   assert(result._meta.redacted === true, '_meta.redacted must be true');
 });
 

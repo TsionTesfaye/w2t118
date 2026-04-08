@@ -22,6 +22,7 @@ import { validateSession } from '../domain/policies/sessionPolicy.js';
 import { Permissions } from '../domain/enums/permissions.js';
 import { ValidationError } from '../utils/errors.js';
 import { AuditService, AuditActions } from './AuditService.js';
+import { AnalyticsService } from './AnalyticsService.js';
 
 // ── Passphrase encryption helpers (AES-256-GCM via Web Crypto) ──────────────
 
@@ -338,8 +339,6 @@ export const ExportImportService = {
   async exportAnalytics(session) {
     validateSession(session);
     requirePermission(session, Permissions.ANALYTICS_EXPORT);
-
-    const { AnalyticsService } = await import('./AnalyticsService.js');
 
     const kpis = await AnalyticsService.computeKPIs(session);
 
