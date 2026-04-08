@@ -108,7 +108,8 @@ export async function registerUser(page, {
   await page.fill('#sq2-answer',   'springfield');
 
   await page.click('button[type="submit"]');
-  await page.waitForURL(/\/#\/login/, { timeout: 8_000 });
+  // Registration involves PBKDF2 hashing (100k iterations) which can be slow in CI
+  await page.waitForURL(/\/#\/login/, { timeout: 30_000 });
 }
 
 /**
@@ -123,8 +124,8 @@ export async function login(page, {
   await page.fill('#username', username);
   await page.fill('#password', password);
   await page.click('button[type="submit"]');
-  // Wait for redirect away from login
-  await page.waitForURL(/\/#\/(?!login)/, { timeout: 10_000 });
+  // Wait for redirect away from login — PBKDF2 verification can be slow in CI
+  await page.waitForURL(/\/#\/(?!login)/, { timeout: 30_000 });
 }
 
 /**
