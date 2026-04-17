@@ -27,6 +27,11 @@ POLYFILL_FILE="$SCRIPT_DIR/.n18-crypto-polyfill.cjs"
 printf 'if (!global.crypto) global.crypto = require("crypto").webcrypto;\n' > "$POLYFILL_FILE"
 export NODE_OPTIONS="--require $POLYFILL_FILE ${NODE_OPTIONS:-}"
 
+# ── Ensure platform-correct dependencies ──
+# Reinstalls if node_modules are absent or were installed on a different OS
+# (e.g. macOS node_modules checked in then run on Linux CI).
+npm install --prefer-offline --silent
+
 # ── Build Validation ──
 echo "============================================"
 echo "  BUILD VALIDATION"
