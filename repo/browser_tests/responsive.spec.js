@@ -158,18 +158,14 @@ test.describe('Visual consistency (desktop)', () => {
 
   test.beforeEach(async ({ page }) => {
     await clearBrowserState(page);
-    // Do NOT complete setup so we can check the setup wizard itself
   });
 
-  test('setup wizard: form fields present on fresh app load', async ({ page }) => {
-    await page.goto('/');
-    // Fresh app → redirects to setup
-    await page.waitForURL(/\/#\/setup/, { timeout: 10_000 });
+  test('login page: form fields present on fresh app load', async ({ page }) => {
+    // App auto-seeds on first load and redirects to /login (not /setup)
+    await expect(page).toHaveURL(/\/#\/login/);
 
     await expect(page.locator('#username')).toBeVisible();
-    await expect(page.locator('#displayName')).toBeVisible();
     await expect(page.locator('#password')).toBeVisible();
-    await expect(page.locator('#confirmPassword')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 

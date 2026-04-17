@@ -28,56 +28,23 @@ export async function clearBrowserState(page) {
       })));
     } catch {}
   });
-  // Navigate again so the app boots with clean state
+  // Navigate again — bootstrap detects empty DB, auto-seeds all demo accounts
+  // (PBKDF2 × 5 accounts ≈ 5 s on first load), then redirects to /login.
   await page.goto('/');
+  await page.waitForURL(/\/#\/(login|home)/, { timeout: 30_000 });
 }
 
 /**
- * Complete the first-run setup wizard (SetupView.vue).
- *
- * SetupView form elements:
- *   Step 1: #username, #displayName, #password, #confirmPassword
- *           .security-question-group select (×2), .security-question-group input (×2)
- *   Step 2: button:has-text("Confirm & Finish Setup")
+ * "Complete setup" — historically ran the first-run wizard, but the app now
+ * auto-seeds all demo accounts at startup so the wizard is never shown.
+ * This helper is kept for backward-compatibility: it simply logs in as admin.
  */
 export async function completeSetup(page, {
-  username    = 'admin',
-  password    = 'Admin@TradeLoop1!',
-  displayName = 'Site Admin',
+  username = 'admin',
+  password = 'Admin@TradeLoop1!',
+  displayName = 'Site Admin',   // unused — kept so call-sites need no changes
 } = {}) {
-  await page.goto('/#/setup');
-  await page.waitForURL('**/#/setup', { timeout: 10_000 });
-
-  // ── Step 1: admin credentials ──
-  await page.fill('#username', username);
-  await page.fill('#displayName', displayName);
-  await page.fill('#password', password);
-  await page.fill('#confirmPassword', password);
-
-  // SetupView uses <select> for security question choices — must pick DIFFERENT questions
-  const qSelects = page.locator('.security-question-group select');
-  const qCount   = await qSelects.count();
-  for (let i = 0; i < qCount; i++) {
-    // index 1 = first real question, index 2 = second real question (must differ)
-    await qSelects.nth(i).selectOption({ index: i + 1 });
-  }
-
-  // Answer inputs are inside .security-question-group > div.form-group:last-child > input
-  const aInputs = page.locator('.security-question-group input');
-  const aCount  = await aInputs.count();
-  for (let i = 0; i < aCount; i++) {
-    await aInputs.nth(i).fill(`setupanswer${i + 1}`);
-  }
-
-  await page.click('button[type="submit"]');
-
-  // ── Step 2: categories (accept defaults) ──
-  // Wait for step 2 to appear
-  await page.waitForSelector('button:has-text("Confirm & Finish Setup")', { timeout: 10_000 });
-  await page.click('button:has-text("Confirm & Finish Setup")');
-
-  // Should be redirected to home after setup completes
-  await page.waitForURL(/\/#\/(home|)$/, { timeout: 15_000 });
+  await login(page, { username, password });
 }
 
 /**

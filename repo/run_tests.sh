@@ -30,7 +30,7 @@ export NODE_OPTIONS="--require $POLYFILL_FILE ${NODE_OPTIONS:-}"
 # ── Ensure platform-correct dependencies ──
 # Reinstalls if node_modules are absent or were installed on a different OS
 # (e.g. macOS node_modules checked in then run on Linux CI).
-npm install --prefer-offline --silent
+npm install --silent
 
 # ── Build Validation ──
 echo "============================================"
@@ -114,6 +114,10 @@ run_browser_tests() {
   echo "============================================"
   echo "  Requires: built app (npm run build already ran above)"
   echo "  Server:   Playwright auto-starts via webServer config"
+
+  # Install Chromium + OS-level dependencies if not already present.
+  # Idempotent: skips download when the binary already exists.
+  npx playwright install --with-deps chromium
 
   TOTAL=$((TOTAL + 1))
   if npx playwright test; then
