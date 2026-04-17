@@ -6,32 +6,60 @@
  */
 
 /**
- * Clear all browser storage and navigate to the app root.
- * Call this at the start of each test that needs a clean slate.
+ * Stores that contain user-generated test data — cleared between tests.
+ * Excluded: users, categories, sessions — these hold the seeded accounts
+ * and must survive across tests so seeding only runs once per test-run.
+ */
+const RESET_STORES = [
+  'listings', 'listingVersions', 'threads', 'messages', 'transactions',
+  'deliveryBookings', 'addresses', 'comments', 'reports', 'moderationCases',
+  'complaints', 'refunds', 'notifications', 'auditLogs', 'blocks',
+  'coverageZips', 'sensitiveWords',
+];
+
+/**
+ * Clear all browser storage and navigate to the login page.
+ *
+ * Strategy: wipe localStorage (session) and user-generated IndexedDB stores,
+ * but KEEP the seeded users and categories. This means PBKDF2 seeding only
+ * runs once per Playwright worker (on the very first test), cutting per-test
+ * overhead from ~30 s down to ~1 s.
  */
 export async function clearBrowserState(page) {
-  // Navigate to the app first so storage APIs are available in the correct origin
-  await page.goto('/');
-  await page.evaluate(async () => {
-    // Clear localStorage and sessionStorage
+  // Step 1: full-page load so the app bootstraps (hash route keeps the router
+  // happy). First test of a fresh run: ~30 s for PBKDF2 seeding then mount.
+  // All subsequent tests: ~1 s (admin already in IDB, seeding skipped).
+  await page.goto('/#/login');
+  await page.waitForSelector('#app > *', { timeout: 60_000 });
+
+  // Step 2: clear session + user-generated IDB stores.
+  // Seeded users + categories are NOT touched, so bootstrap never re-seeds.
+  await page.evaluate(async (stores) => {
     try { localStorage.clear(); } catch {}
     try { sessionStorage.clear(); } catch {}
-
-    // Clear all IndexedDB databases
     try {
       const dbs = (await indexedDB.databases?.()) ?? [];
-      await Promise.all(dbs.map(db => new Promise((res) => {
-        const req = indexedDB.deleteDatabase(db.name);
-        req.onsuccess = res;
-        req.onerror = res;
-        req.onblocked = res;
-      })));
+      if (!dbs.some(d => d.name === 'tradeloop')) return;
+      await new Promise((resolve) => {
+        const req = indexedDB.open('tradeloop');
+        req.onerror = resolve;
+        req.onsuccess = (e) => {
+          const db = e.target.result;
+          const valid = stores.filter(s => db.objectStoreNames.contains(s));
+          if (!valid.length) { db.close(); resolve(); return; }
+          const tx = db.transaction(valid, 'readwrite');
+          valid.forEach(s => tx.objectStore(s).clear());
+          tx.oncomplete = () => { db.close(); resolve(); };
+          tx.onerror   = () => { db.close(); resolve(); };
+        };
+      });
     } catch {}
-  });
-  // Navigate again — bootstrap detects empty DB, auto-seeds all demo accounts
-  // (PBKDF2 × 5 accounts ≈ 5 s on first load), then redirects to /login.
-  await page.goto('/');
-  await page.waitForURL(/\/#\/(login|home)/, { timeout: 30_000 });
+  }, RESET_STORES);
+
+  // Step 3: reload to reset in-memory Pinia/auth state with the cleared
+  // session. Bootstrap skips seeding (admin still in IDB) so this is ~1 s.
+  await page.reload();
+  await page.waitForURL(/\/#\/login/, { timeout: 15_000 });
 }
 
 /**

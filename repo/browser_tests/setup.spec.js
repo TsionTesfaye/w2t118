@@ -84,10 +84,11 @@ test.describe('First-Run Setup Flow', () => {
     await page.waitForURL(/\/#\/(login|home)/, { timeout: 8_000 });
     await expect(page).not.toHaveURL(/\/#\/setup/);
 
-    // Also inaccessible while authenticated
+    // Also inaccessible while authenticated — navigating from /#/home to
+    // /#/setup is a hash-only change (no page reload), so use toHaveURL which
+    // polls without requiring a load event rather than waitForURL.
     await login(page, { username: 'admin', password: ADMIN_PASS });
     await page.goto('/#/setup');
-    await page.waitForURL(/\/#\/(login|home)/, { timeout: 8_000 });
-    await expect(page).not.toHaveURL(/\/#\/setup/);
+    await expect(page).not.toHaveURL(/\/#\/setup/, { timeout: 8_000 });
   });
 });
