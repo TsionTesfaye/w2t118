@@ -5,3 +5,9 @@ dist
 *.md
 .env
 .env.*
+.tmp
+.claude
+playwright-report
+test-results
+.DS_Store
+*.log
