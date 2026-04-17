@@ -3,40 +3,21 @@
 #
 # Directory structure:
 #   unit_tests/   — pure unit tests (domain, services, routing, ui)
-#   API_tests/    — API contract / service integration tests
 #   e2e_tests/    — service-level end-to-end flow tests (no browser)
 #   browser_tests/— Playwright browser E2E tests
 #
 # Usage:
 #   ./run_tests.sh              — all suites
 #   ./run_tests.sh --unit       — unit_tests only
-#   ./run_tests.sh --api        — API_tests only
 #   ./run_tests.sh --e2e        — e2e_tests only
 #   ./run_tests.sh --browser    — browser_tests (Playwright) only
+#   ./run_tests.sh --component  — component_tests (Vitest + jsdom) only
 #   ./run_tests.sh --all        — all suites (same as default)
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
-
-# ── Dependency Check ──
-# Rollup (used by Vite) ships platform-specific native binaries as optional
-# dependencies. If node_modules was installed on a different OS/arch (e.g.
-# macOS → Linux CI, or Alpine → glibc), the native module will be missing.
-# Detect this and reinstall when needed.
-NEED_INSTALL=0
-if [ ! -d "node_modules" ]; then
-  NEED_INSTALL=1
-elif ! node -e "require('rollup')" 2>/dev/null; then
-  echo "  Rollup native module missing for this platform — reinstalling..."
-  rm -rf node_modules
-  NEED_INSTALL=1
-fi
-if [ $NEED_INSTALL -eq 1 ]; then
-  echo "  Running npm install..."
-  npm install 2>&1 | tail -5 || true
-fi
 
 # ── Node 18 crypto polyfill ──
 # Node 18 exposes crypto on globalThis but NOT as a bare global identifier
@@ -95,17 +76,6 @@ run_unit_tests() {
   done
 }
 
-run_api_tests() {
-  echo ""
-  echo "============================================"
-  echo "  API / INTEGRATION TESTS  (API_tests/)"
-  echo "============================================"
-
-  for f in API_tests/*.js; do
-    [ -f "$f" ] && run_test "$f"
-  done
-}
-
 run_e2e_service_tests() {
   echo ""
   echo "============================================"
@@ -117,6 +87,21 @@ run_e2e_service_tests() {
   done
 }
 
+run_component_tests() {
+  echo ""
+  echo "============================================"
+  echo "  COMPONENT TESTS  (component_tests/ — Vitest)"
+  echo "============================================"
+
+  TOTAL=$((TOTAL + 1))
+  if npx vitest run --config vitest.config.js --reporter=verbose 2>&1; then
+    PASSED=$((PASSED + 1))
+  else
+    FAILED=$((FAILED + 1))
+    FAILED_TESTS="$FAILED_TESTS\n  - component_tests/vitest"
+  fi
+}
+
 run_browser_tests() {
   echo ""
   echo "============================================"
@@ -124,12 +109,6 @@ run_browser_tests() {
   echo "============================================"
   echo "  Requires: built app (npm run build already ran above)"
   echo "  Server:   Playwright auto-starts via webServer config"
-
-  # Ensure Playwright browsers are installed
-  if ! npx playwright install --dry-run > /dev/null 2>&1; then
-    echo "  Installing Playwright browsers..."
-  fi
-  npx playwright install chromium 2>&1 | tail -3 || true
 
   TOTAL=$((TOTAL + 1))
   if npx playwright test; then
@@ -147,18 +126,18 @@ case "$MODE" in
   --unit)
     run_unit_tests
     ;;
-  --api)
-    run_api_tests
-    ;;
   --e2e)
     run_e2e_service_tests
     ;;
   --browser)
     run_browser_tests
     ;;
+  --component)
+    run_component_tests
+    ;;
   --all|*)
     run_unit_tests
-    run_api_tests
+    run_component_tests
     run_e2e_service_tests
     run_browser_tests
     ;;

@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Vite / test caches
+.vite/
+*.local
+
+# Vitest
+node_modules/.vite/
+
+# Playwright
+playwright-report/
+test-results/
+
+
+
+# Claude Code
+.claude/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Session files
+sessions/

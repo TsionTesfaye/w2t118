@@ -16,11 +16,11 @@ COPY . .
 # Produce production build (fails the image build if there are syntax errors)
 RUN npm run build
 
-# Run unit, API, and e2e tests (run_tests.sh handles the Node 18 crypto
+# Run unit, component, and e2e tests (run_tests.sh handles the Node 18 crypto
 # polyfill internally). Browser tests are excluded — they require Chromium,
 # which is not present in the Alpine build image.
 # Run browser tests locally: ./run_tests.sh --browser
-RUN ./run_tests.sh --unit && ./run_tests.sh --api && ./run_tests.sh --e2e
+RUN ./run_tests.sh --unit && ./run_tests.sh --component && ./run_tests.sh --e2e
 
 # ── Production Stage ─────────────────────────────────────────────────────────
 FROM node:18-alpine

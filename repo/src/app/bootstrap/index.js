@@ -7,6 +7,7 @@ import { AuthService } from '../../services/AuthService.js';
 import { TransactionService } from '../../services/TransactionService.js';
 import { InitService } from '../../services/InitService.js';
 import { initMultiTabSync } from './multiTabSync.js';
+import { seedDemoAccounts } from '../../dev/seedAccounts.js';
 
 const RESERVATION_CHECK_INTERVAL = 60 * 1000; // 1 minute
 let reservationTimer = null;
@@ -32,6 +33,13 @@ export async function bootstrapApp() {
 
   // 3. Check and cache initialization state (admin user exists?)
   _initialized = await InitService.isInitialized();
+
+  // 3a. Fresh database — seed demo accounts so testers go straight to /login
+  //     instead of the Setup Wizard. Runs only once; subsequent loads skip this.
+  if (!_initialized) {
+    await seedDemoAccounts();
+    _initialized = true;
+  }
 
   // 4. Start periodic reservation expiry check
   startReservationChecker();
